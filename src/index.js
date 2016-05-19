@@ -87,18 +87,24 @@ export const sync = wrap((fn, print) => function perfWrappedSync(...args) {
 export const promise = wrap((fn, print) => function perfWrappedPromise(...args) {
   const start = process.hrtime();
 
-  // assume this is a valid promise returning function
-  return fn.apply(this, args)
-    .then(
-      val => {
-        print(start, args, [undefined, val]);
-        return val; // return val
-      },
-      err => {
-        print(start, args, [err, undefined]);
-        throw err; // rethrow err
-      }
-    );
+  const ret = fn.apply(this, args);
+
+  // common case where a thennable is returned
+  if (ret && ret.then) {
+    return ret.then(
+        val => {
+          print(start, args, [undefined, val]);
+          return val; // return val
+        },
+        err => {
+          print(start, args, [err, undefined]);
+          throw err; // rethrow err
+        }
+      );
+  }
+
+  // it wasn't a promise. great job.
+  return ret;
 });
 
 /**
