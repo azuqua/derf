@@ -1,0 +1,3 @@
+describe('callback wrapper', function() {
+
+});

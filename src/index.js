@@ -6,7 +6,7 @@ function hrToNano(hr) {
   return hr[0] * 1e9 + hr[1];
 }
 
-// the default message
+// the default message to display
 function defaultPrinter(debug, time, callArgs, resArgs) {
   const displayTime = `${Math.floor(time / 1e5) / 10}ms`;
 
@@ -17,7 +17,7 @@ function defaultPrinter(debug, time, callArgs, resArgs) {
   }
 }
 
-// wraps all our handler function to take care of some patters
+// wraps all our handler function to take care of some common patterns
 function wrap(handler) {
   return (namespace, fn, printer = defaultPrinter) => {
     // 'cast' namespace to be a debug function
@@ -29,7 +29,7 @@ function wrap(handler) {
       return fn;
     }
 
-    // validate args if enabled, but we only warn here if it fails
+    // validate args if enabled, but only warn here if it fails
     try {
       assert(typeof fn === 'function', 'Expected function for wrapped function');
       assert(typeof printer === 'function', 'Expected function for printer');
@@ -122,8 +122,8 @@ export const callback = wrap((fn, print) => function perfWrapped(...args) {
     return fn.apply(this, args);
   }
 
-  // TODO treat synchronously?
-  return fn.apply(this, args);
+  // no callback at all. Wow..
+  return fn.apply(this, args); // TODO synchronously handle it? warn?
 });
 
 /**
@@ -133,6 +133,7 @@ export const callback = wrap((fn, print) => function perfWrapped(...args) {
  * @param {Function} printer - to customize logs
  */
 export const middleware = wrap((fn, print) => {
+  // figure out what we're dealing with
   const isError = fn.length === 4;
   const resIndex = isError ? 2 : 1;
   const nextIndex = isError ? 3 : 2;
@@ -151,8 +152,8 @@ export const middleware = wrap((fn, print) => {
       print(start, args, [undefined, undefined]);
     }
 
-    // intercept any kind of send on the response
-    res.on('close', log);
+    // intercept any reponse end
+    res.on('close', log); // TODO is this safe? check express.
     res.on('finish', log);
 
     // intercept calling next()

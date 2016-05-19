@@ -1,0 +1,3 @@
+describe('sync wrapper', function() {
+
+});

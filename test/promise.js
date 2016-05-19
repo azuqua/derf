@@ -1,0 +1,3 @@
+describe('promise wrapper', function() {
+
+});
