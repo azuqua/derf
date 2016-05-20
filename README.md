@@ -101,7 +101,7 @@ You can pass in a function as the last argument of each derf wrapper to customiz
 For example, a simple printer could look like this:
 
 ```js
-function simplePrinter(debug, time, callArgs, resArgs) {
+function simplePrinter(debug, time, callArgs, retArgs) {
   const [err, res] = retArgs; // not available for middleware
 
   if (err) {
@@ -114,4 +114,4 @@ function simplePrinter(debug, time, callArgs, resArgs) {
 
 ### Caveats
 
-TODO 
+TODO

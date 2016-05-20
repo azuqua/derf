@@ -1,16 +1,17 @@
 import createDebug from 'debug';
 import assert from 'assert';
 import findLastIndex from 'lodash/findLastIndex';
+import onFinished from 'on-finished';
 
 function hrToNano(hr) {
   return hr[0] * 1e9 + hr[1];
 }
 
 // the default message to display
-function defaultPrinter(debug, time, callArgs, resArgs) {
+function defaultPrinter(debug, time, callArgs, retArgs) {
   const displayTime = `${Math.floor(time / 1e5) / 10}ms`;
 
-  if (resArgs[0]) {
+  if (retArgs[0]) {
     debug('failed in %s', displayTime);
   } else {
     debug('finished in %s', displayTime);
@@ -148,26 +149,31 @@ export const middleware = wrap((fn, print) => {
     const start = process.hrtime();
     const res = args[resIndex];
     const next = args[nextIndex];
+    let finished = false;
 
     function log() {
-      // clean self up
-      res.removeListener('close', log);
-      res.removeListener('finish', log);
+      if (!finished) {
+        finished = true;
 
-      // don't try to guess if it succeeded or failed
-      print(start, args, [undefined, undefined]);
+        // dont try to guess the retArgs
+        print(start, args, [undefined, undefined]);
+      }
     }
 
-    // intercept any reponse end
-    res.on('close', log); // TODO is this safe? check express.
-    res.on('finish', log);
+    // try to intercept the reponse end
+    if (res) {
+      onFinished(res, log);
+    }
 
-    // intercept calling next()
-    args[nextIndex] = function perfWrappedNext(...retArgs) {
-      log();
-      return next.apply(this, retArgs);
-    };
+    // try to intercept calling next()
+    if (next && typeof next === 'function') {
+      args[nextIndex] = function perfWrappedNext(...retArgs) {
+        log();
+        return next.apply(this, retArgs);
+      };
+    }
 
+    //
     return fn.apply(this, args);
   };
 });
