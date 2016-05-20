@@ -3,18 +3,20 @@ import assert from 'assert';
 import findLastIndex from 'lodash/findLastIndex';
 import onFinished from 'on-finished';
 
+const debug = createDebug('derf');
+
 function hrToNano(hr) {
   return hr[0] * 1e9 + hr[1];
 }
 
 // the default message to display
-function defaultPrinter(debug, time, callArgs, retArgs) {
+function defaultPrinter(print, time, callArgs, retArgs) {
   const displayTime = `${Math.floor(time / 1e5) / 10}ms`;
 
   if (retArgs[0]) {
-    debug('failed in %s', displayTime);
+    print('failed in %s', displayTime);
   } else {
-    debug('finished in %s', displayTime);
+    print('finished in %s', displayTime);
   }
 }
 
@@ -22,11 +24,11 @@ function defaultPrinter(debug, time, callArgs, retArgs) {
 function wrap(handler) {
   return (namespace, fn, printer = defaultPrinter) => {
     // 'cast' namespace to be a debug function
-    const debug = typeof namespace === 'function' ?
+    const fnDebug = typeof namespace === 'function' ?
       namespace : createDebug(namespace);
 
     // noop if debug is not enabled
-    if (!debug.enabled) {
+    if (!fnDebug.enabled) {
       return fn;
     }
 
@@ -43,7 +45,7 @@ function wrap(handler) {
     const print = (start, args, retArgs) => {
       try {
         const diff = hrToNano(process.hrtime(start));
-        printer(debug, diff, args, retArgs);
+        printer(fnDebug, diff, args, retArgs);
       } catch (e) {
         /* noop */
       }
@@ -59,24 +61,28 @@ function wrap(handler) {
  * @param {Function} fn - to wrap
  * @param {Function} printer - to customize logs
  */
-export const sync = wrap((fn, print) => function perfWrappedSync(...args) {
-  const start = process.hrtime();
-  let err = undefined;
-  let val = undefined;
+export const sync = wrap((fn, print) => {
+  debug('wrapping sync function: %s', fn.name || 'anonymous');
 
-  try {
-    val = fn.apply(this, args);
-  } catch (e) {
-    err = e;
-  } finally {
-    print(start, args, [err, val]);
-  }
+  return function perfWrappedSync(...args) {
+    const start = process.hrtime();
+    let err = undefined;
+    let val = undefined;
 
-  if (err) {
-    throw err;
-  } else {
-    return val;
-  }
+    try {
+      val = fn.apply(this, args);
+    } catch (e) {
+      err = e;
+    } finally {
+      print(start, args, [err, val]);
+    }
+
+    if (err) {
+      throw err;
+    } else {
+      return val;
+    }
+  };
 });
 
 /**
@@ -85,27 +91,32 @@ export const sync = wrap((fn, print) => function perfWrappedSync(...args) {
  * @param {Function} fn - to wrap
  * @param {Function} printer - to customize logs
  */
-export const promise = wrap((fn, print) => function perfWrappedPromise(...args) {
-  const start = process.hrtime();
+export const promise = wrap((fn, print) => {
+  debug('wrapping promise function: %s', fn.name || 'anonymous');
 
-  const ret = fn.apply(this, args);
+  return function perfWrappedPromise(...args) {
+    const start = process.hrtime();
 
-  // common case where a thennable is returned
-  if (ret && ret.then) {
-    return ret.then(
-        val => {
-          print(start, args, [undefined, val]);
-          return val; // return val
-        },
-        err => {
-          print(start, args, [err, undefined]);
-          throw err; // rethrow err
-        }
-      );
-  }
+    const ret = fn.apply(this, args);
 
-  // it wasn't a promise. great job.
-  return ret;
+    // common case where a thennable is returned
+    if (ret && ret.then) {
+      return ret.then(
+          val => {
+            print(start, args, [undefined, val]);
+            return val; // return val
+          },
+          err => {
+            print(start, args, [err, undefined]);
+            throw err; // rethrow err
+          }
+        );
+    }
+
+    // it wasn't a promise. great job.
+    debug('no promise returned from wrapped promise function. not logging');
+    return ret;
+  };
 });
 
 /**
@@ -114,23 +125,29 @@ export const promise = wrap((fn, print) => function perfWrappedPromise(...args) 
  * @param {Function} fn - to wrap
  * @param {Function} printer - to customize logs
  */
-export const callback = wrap((fn, print) => function perfWrapped(...args) {
-  const start = process.hrtime();
+export const callback = wrap((fn, print) => {
+  debug('wrapping callback function: %s', fn.name || 'anonymous');
 
-  // most function have the callback last, but just in case...
-  const index = findLastIndex(args, arg => typeof arg === 'function');
-  if (index >= 0) {
-    const cb = args[index];
-    args[index] = function perfWrappedCb(...retArgs) {
-      print(start, args, retArgs);
-      return cb.apply(this, retArgs);
-    };
+  return function perfWrapped(...args) {
+    const start = process.hrtime();
 
-    return fn.apply(this, args);
-  }
+    // most function have the callback last, but just in case...
+    const index = findLastIndex(args, arg => typeof arg === 'function');
+    if (index >= 0) {
+      debug('wrapping callback at arguments[%s]', index);
+      const cb = args[index];
+      args[index] = function perfWrappedCb(...retArgs) {
+        print(start, args, retArgs);
+        return cb.apply(this, retArgs);
+      };
 
-  // no callback at all. Wow..
-  return fn.apply(this, args); // TODO synchronously handle it? warn?
+      return fn.apply(this, args);
+    }
+
+    // no callback at all. Wow..
+    debug('no callback passed to wrapped callback function. not logging');
+    return fn.apply(this, args); // TODO synchronously handle it? warn?
+  };
 });
 
 /**
@@ -140,8 +157,12 @@ export const callback = wrap((fn, print) => function perfWrapped(...args) {
  * @param {Function} printer - to customize logs
  */
 export const middleware = wrap((fn, print) => {
+  debug('wrapping express middleware: %s', fn.name || 'anonymous');
+  const arity = fn.length;
+
   // normal middleware?
-  if (fn.length <= 3) {
+  if (arity <= 3) {
+    debug('%s args, is normal middleware', arity);
     return function perfWrappedMiddleware(req, res, next) {
       const start = process.hrtime();
       let finished = false;
@@ -164,6 +185,7 @@ export const middleware = wrap((fn, print) => {
   }
 
   // must be error middleware
+  debug('%s args, is error middleware', arity);
   return function perfWrappedMiddleware(err, req, res, next) {
     const start = process.hrtime();
     let finished = false;
