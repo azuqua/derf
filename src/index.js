@@ -140,15 +140,32 @@ export const callback = wrap((fn, print) => function perfWrapped(...args) {
  * @param {Function} printer - to customize logs
  */
 export const middleware = wrap((fn, print) => {
-  // figure out what we're dealing with
-  const isError = fn.length === 4;
-  const resIndex = isError ? 2 : 1;
-  const nextIndex = isError ? 3 : 2;
+  // normal middleware?
+  if (fn.length <= 3) {
+    return function perfWrappedMiddleware(req, res, next) {
+      const start = process.hrtime();
+      let finished = false;
 
-  return function perfWrappedMiddleware(...args) {
+      function log() {
+        if (!finished) {
+          finished = true;
+
+          // dont try to guess the retArgs
+          print(start, [req, res], [undefined, undefined]);
+        }
+      }
+
+      onFinished(res, log);
+      return fn.call(this, req, res, function wrappedNext() {
+        log();
+        next.apply(this, arguments); // eslint-disable-line prefer-rest-params
+      });
+    };
+  }
+
+  // must be error middleware
+  return function perfWrappedMiddleware(err, req, res, next) {
     const start = process.hrtime();
-    const res = args[resIndex];
-    const next = args[nextIndex];
     let finished = false;
 
     function log() {
@@ -156,24 +173,14 @@ export const middleware = wrap((fn, print) => {
         finished = true;
 
         // dont try to guess the retArgs
-        print(start, args, [undefined, undefined]);
+        print(start, [err, req, res], [undefined, undefined]);
       }
     }
 
-    // try to intercept the reponse end
-    if (res) {
-      onFinished(res, log);
-    }
-
-    // try to intercept calling next()
-    if (next && typeof next === 'function') {
-      args[nextIndex] = function perfWrappedNext(...retArgs) {
-        log();
-        return next.apply(this, retArgs);
-      };
-    }
-
-    //
-    return fn.apply(this, args);
+    onFinished(res, log);
+    return fn.call(this, err, req, res, function wrappedNext() {
+      log();
+      next.apply(this, arguments); // eslint-disable-line prefer-rest-params
+    });
   };
 });
