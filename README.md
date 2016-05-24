@@ -114,4 +114,11 @@ function simplePrinter(debug, time, callArgs, retArgs) {
 
 ### Caveats
 
-TODO
+1. Because derf wraps your function calls with it's own. There is a
+performance hit when the `DEBUG` environment variable is enabled. But
+you shouldn't have that enabled in production anyways.
+
+2. Try not to miswrap Functions (e.g. don't do `derf.promise(someCallbackFunction)`).
+While derf won't break your code by throwing an error, it will not be able to print
+the timings of that function, it may also cause the function to run slower.
+Run your code with `DEBUG=derf,your:namespace:*` to view derf's own debug statements.
