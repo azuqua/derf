@@ -66,9 +66,9 @@ export const sync = wrap((fn, print) => {
   debug('wrapping sync function: %s', fn.name || 'anonymous');
 
   return function perfWrappedSync(...args) {
-    const start = process.hrtime();
     let err = undefined;
     let val = undefined;
+    const start = process.hrtime();
 
     try {
       val = fn.apply(this, args);
@@ -97,7 +97,6 @@ export const promise = wrap((fn, print) => {
 
   return function perfWrappedPromise(...args) {
     const start = process.hrtime();
-
     const ret = fn.apply(this, args);
 
     // common case where a thennable is returned
@@ -130,12 +129,11 @@ export const callback = wrap((fn, print) => {
   debug('wrapping callback function: %s', fn.name || 'anonymous');
 
   return function perfWrapped(...args) {
-    const start = process.hrtime();
-
     // most function have the callback last, but just in case...
     const index = findLastIndex(args, arg => typeof arg === 'function');
     if (index >= 0) {
       debug('wrapping callback at arguments[%s]', index);
+      const start = process.hrtime();
       const cb = args[index];
       args[index] = function perfWrappedCb(...retArgs) {
         print(start, args, retArgs);
