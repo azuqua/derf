@@ -1,6 +1,7 @@
 import createDebug from 'debug';
 import assert from 'assert';
 import findLastIndex from 'lodash/findLastIndex';
+import round from 'lodash/round';
 import onFinished from 'on-finished';
 
 const debug = createDebug('derf');
@@ -11,7 +12,7 @@ function hrToNano(hr) {
 
 // the default message to display
 function defaultPrinter(print, time, callArgs, retArgs) {
-  const displayTime = `${Math.floor(time / 1e5) / 10}ms`;
+  const displayTime = `${round(time / 1e6, 2)}ms`;
 
   if (retArgs[0]) {
     print('failed in %s', displayTime);
