@@ -128,7 +128,7 @@ export const promise = wrap((fn, print) => {
 export const callback = wrap((fn, print) => {
   debug('wrapping callback function: %s', fn.name || 'anonymous');
 
-  return function perfWrapped(...args) {
+  return function perfWrappedCallback(...args) {
     // most function have the callback last, but just in case...
     const index = findLastIndex(args, arg => typeof arg === 'function');
     if (index >= 0) {
@@ -185,7 +185,7 @@ export const middleware = wrap((fn, print) => {
 
   // must be error middleware
   debug('%s args, is error middleware', arity);
-  return function perfWrappedMiddleware(err, req, res, next) {
+  return function perfWrappedErrorMiddleware(err, req, res, next) {
     const start = process.hrtime();
     let finished = false;
 
