@@ -35,10 +35,10 @@ function wrap(handler) {
 
     // validate args if enabled, but only warn here if it fails
     try {
-      assert(typeof fn === 'function', 'Expected function for wrapped function');
-      assert(typeof printer === 'function', 'Expected function for printer');
+      assert(typeof fn === 'function', 'expected a function to wrap');
+      assert(typeof printer === 'function', 'expected function for printing');
     } catch (e) {
-      console.warn(`derf:${e.message}`); // eslint-disable-line no-console
+      console.warn(`derf ${e.message}`); // eslint-disable-line no-console
       return fn;
     }
 
@@ -48,6 +48,7 @@ function wrap(handler) {
         const diff = hrToNano(process.hrtime(start));
         printer(fnDebug, diff, args, retArgs);
       } catch (e) {
+        debug('derf printer threw an error %s', e && e.stack);
         /* noop */
       }
     };
@@ -139,13 +140,12 @@ export const callback = wrap((fn, print) => {
         print(start, args, retArgs);
         return cb.apply(this, retArgs);
       };
-
-      return fn.apply(this, args);
+    } else {
+      // no callback at all. Wow..
+      debug('no callback passed to wrapped callback function. not logging');
     }
 
-    // no callback at all. Wow..
-    debug('no callback passed to wrapped callback function. not logging');
-    return fn.apply(this, args); // TODO synchronously handle it? warn?
+    return fn.apply(this, args);
   };
 });
 
