@@ -3,6 +3,7 @@ import assert from 'assert';
 import findLastIndex from 'lodash/findLastIndex';
 import round from 'lodash/round';
 import onFinished from 'on-finished';
+import mimic from 'mimic-fn';
 
 const debug = createDebug('derf');
 
@@ -53,7 +54,11 @@ function wrap(handler) {
       }
     };
 
-    return handler(fn, print);
+    const wrappedFn = handler(fn, print);
+
+    // because the name and arity might matter
+    mimic(wrappedFn, fn);
+    return wrappedFn;
   };
 }
 
