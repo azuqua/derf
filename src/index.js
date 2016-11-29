@@ -6,6 +6,7 @@ import onFinished from 'on-finished';
 import mimic from 'mimic-fn';
 
 const debug = createDebug('derf');
+const DERFED = Symbol('derfed');
 
 function hrToNano(hr) {
   return hr[0] * 1e9 + hr[1];
@@ -54,13 +55,18 @@ function wrap(handler) {
       }
     };
 
+    // mimic original function because the name and arity might matter
     const wrappedFn = handler(fn, print);
-
-    // because the name and arity might matter
     mimic(wrappedFn, fn);
+
+    // mark it with a symbol so it's possible to tell the difference
+    wrappedFn[DERFED] = true;
+
     return wrappedFn;
   };
 }
+
+export const isWrapped = (fn) => !!fn && !!fn[DERFED];
 
 /**
  * Wrap a synchronous function

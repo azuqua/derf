@@ -89,6 +89,9 @@ Wraps a function that returns a promise.
 #### `derf.middleware(namespace, fn, [printer])`
 Wraps express middleware, route handlers, and error handlers.
 
+#### `derf.isWrapped(fn) -> boolean`
+Returns true if a given function has already been wrapped by derf.
+
 
 ### Custom Logging
 You can pass in a function as the last argument of each derf wrapper to customize what is logged. The function must return a string and is passed the following arguments:
