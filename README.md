@@ -97,7 +97,7 @@ Returns true if a given function has already been wrapped by derf.
 You can pass in a function as the last argument of each derf wrapper to customize what is logged. The function must return a string and is passed the following arguments:
 
  * `debug` - _function_. the debug instance.
- * `time` - _number_. the time in nanoseconds _array_. the function to to run.
+ * `time` - _number_. the time in nanoseconds it took the function to to run.
  * `args` - _array_. the arguments the function was called with.
  * `retArgs` - _array_. the error/value the function was resolved with.
 
