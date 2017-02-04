@@ -115,6 +115,49 @@ function simplePrinter(debug, time, callArgs, retArgs) {
 }
 ```
 
+### Decorators
+In addition to exporting the standard wrapping functions, derf also provides
+functions that work with the experimental decorator syntax.
+
+```js
+import { timeSync, timePromise, timeCallback } from 'derf';
+import createDebug from 'debug';
+
+const debug = createDebug('test');
+
+export default class TimedClass {
+
+  @timeSync('test')
+  sync(val) {
+    return val;
+  }
+
+  @timePromise(debug)
+  promise(val) {
+    return Promise.resolve(val);
+  }
+
+  @timeCallback('test')
+  callback(val, cb) {
+    setTimeout(cb, 0, val);
+  }
+}
+
+```
+
+You can create decorators with custom logging logic by importing the `createDecorator` function.
+
+```js
+import { createDecorator, callback as callbackWrapper } from 'derf';
+
+const myDecorator = createDecorator(
+  callbackWrapper,
+  function simplePrinter(debug, time, callArgs, retArgs) {
+    debug('it\'s done');
+  }
+);
+```
+
 ### Caveats
 
 1. Because derf wraps your function calls with it's own. There is a

@@ -23,6 +23,30 @@ function defaultPrinter(print, time, callArgs, retArgs) {
   }
 }
 
+export function createDecorator(type, printer = defaultPrinter) {
+  return function decorate(namespace) {
+    return function decorator(target, key, descriptor) {
+      if (typeof target === 'function') {
+        debug('cannot wrap class, skipping');
+        return target;
+      }
+
+      if (typeof target.value !== 'function') {
+        debug('cannot wrap non-function, skipping');
+        return descriptor;
+      }
+
+      descriptor.value = type(
+        namespace,
+        descriptor.value,
+        printer
+      );
+
+      return descriptor;
+    };
+  };
+}
+
 // wraps all our handler function to take care of some common patterns
 function wrap(handler) {
   return (namespace, fn, printer = defaultPrinter) => {
@@ -98,6 +122,8 @@ export const sync = wrap((fn, print) => {
   };
 });
 
+export const timeSync = createDecorator(sync);
+
 /**
  * Wrap a promise returning function
  * @param {String|Function} namespace
@@ -131,6 +157,8 @@ export const promise = wrap((fn, print) => {
   };
 });
 
+export const timePromise = createDecorator(sync);
+
 /**
  * Wrap a node-style callback function
  * @param {String|Function} namespace
@@ -159,6 +187,8 @@ export const callback = wrap((fn, print) => {
     return fn.apply(this, args);
   };
 });
+
+export const timeCallback = createDecorator(sync);
 
 /**
  * Wrap an express middleware function
