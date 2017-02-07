@@ -31,7 +31,7 @@ export function createDecorator(type, printer = defaultPrinter) {
         return target;
       }
 
-      if (typeof target.value !== 'function') {
+      if (typeof descriptor.value !== 'function') {
         debug('cannot wrap non-function, skipping');
         return descriptor;
       }
@@ -157,7 +157,7 @@ export const promise = wrap((fn, print) => {
   };
 });
 
-export const timePromise = createDecorator(sync);
+export const timePromise = createDecorator(promise);
 
 /**
  * Wrap a node-style callback function
@@ -188,7 +188,7 @@ export const callback = wrap((fn, print) => {
   };
 });
 
-export const timeCallback = createDecorator(sync);
+export const timeCallback = createDecorator(callback);
 
 /**
  * Wrap an express middleware function

@@ -16,12 +16,12 @@ describe('derf decorators', () => {
 
       @timePromise('test')
       promise(val) {
-        return Promise.resolve(val);
+        return new Promise(res => setTimeout(res, 10, val));
       }
 
       @timeCallback('test')
       callback(val, cb) {
-        setTimeout(cb, 0, val);
+        setTimeout(cb, 10, val);
       }
     }
 
