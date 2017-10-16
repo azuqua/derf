@@ -1,6 +1,6 @@
 {
   "name": "derf",
-  "version": "2.2.1",
+  "version": "3.0.0",
   "description": "A javascript performance debugger.",
   "main": "lib/index.js",
   "scripts": {
