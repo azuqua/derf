@@ -1,12 +1,13 @@
 {
     "parser": "babel-eslint",
-    "extends": "airbnb",
+    "extends": "eslint:recommended",
 
     "ecmaFeatures": {
         "modules": true
     },
 
-    "rules": {
-      "no-param-reassign": [2, { props: false }]
+    "env": {
+        "node": true,
+        "es6": true
     }
 }
